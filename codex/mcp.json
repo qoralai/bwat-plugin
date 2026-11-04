@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "bwat": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["dist/bwat-plugin.js", "serve", "--client", "codex"],
+      "cwd": "."
+    }
+  }
+}

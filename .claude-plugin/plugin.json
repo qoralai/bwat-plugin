@@ -1,0 +1,26 @@
+{
+  "name": "bwat",
+  "version": "0.8.0",
+  "description": "bwat in your agent sessions: your hand-off inbox, meetings and transcripts from your company's bwat, over a local MCP server.",
+  "author": {
+    "name": "WaveXR"
+  },
+  "repository": "https://github.com/qoralai/bwat-plugin",
+  "keywords": [
+    "bwat",
+    "meetings",
+    "hand-off",
+    "inbox",
+    "transcripts",
+    "mcp"
+  ],
+  "mcpServers": "./claude/mcp.json",
+  "userConfig": {
+    "base_url": {
+      "type": "string",
+      "title": "bwat API base URL",
+      "description": "Your company's bwat address, for example https://bwat.example.com (the plugin adds /v1). Ask whoever set up bwat. For bwat running on this computer, use http://127.0.0.1:8080 (plain http works only with 127.0.0.1, not localhost).",
+      "required": true
+    }
+  }
+}

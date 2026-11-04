@@ -1,0 +1,5 @@
+# LF in the working tree whatever core.autocrlf says. mixed-line-ending (--fix=lf)
+# would otherwise rewrite every file of a Windows checkout, and a CRLF copy of
+# a shell script does not run under bash.
+* text=auto eol=lf
+*.sh text eol=lf

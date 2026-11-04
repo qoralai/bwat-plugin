@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "bwat": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/bwat-plugin.js", "serve", "--client", "claude-code"],
+      "env": {
+        "BWAT_BASE_URL": "${user_config.base_url}"
+      }
+    }
+  }
+}

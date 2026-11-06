@@ -1,6 +1,6 @@
 {
   "name": "bwat",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "bwat in your agent sessions: your hand-off inbox, meetings and transcripts from your company's bwat, over a local MCP server.",
   "author": {
     "name": "WaveXR"

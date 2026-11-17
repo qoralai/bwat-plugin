@@ -23,8 +23,22 @@ Node 22 or later must be on PATH.
 | Client | How | Base URL |
 |---|---|---|
 | Claude Code | Install the `bwat` plugin from the marketplace (`.claude-plugin/`, server in `claude/mcp.json`) | Asked when you enable the plugin; change it with `/plugin configure`. Until it is set, Claude Code does not start the server at all |
-| Codex | Not publicly available yet | |
-| Any other MCP client | Add a stdio server: `node /path/to/bwat-plugin/dist/bwat-plugin.js serve --client generic` | Set `BWAT_BASE_URL` in the server's `env` |
+| Codex | `codex plugin marketplace add qoralai/qoral-plugin-marketplace`, then `codex plugin add bwat@qoral-plugin-marketplace` (server in `codex/mcp.json`) | Ask Codex to sign in to bwat with your address: it passes it to `bwat_login` as `base_url`, which keeps it |
+| Any other MCP client | Add a stdio server: `node /path/to/bwat-plugin/dist/bwat-plugin.js serve --client generic` | Set `BWAT_BASE_URL` in the server's `env`, or give it to `bwat_login` |
+
+A client that cannot set `BWAT_BASE_URL` (Codex) passes the address to `bwat_login` as `base_url`.
+It is kept in `BWAT_HOME` and used by every bwat server on the machine that has no `BWAT_BASE_URL`;
+`BWAT_BASE_URL`, where set, always wins. An address is kept only once it answers as a bwat and the
+sign-in has started. A kept address is never replaced by `bwat_login`: `/bwat:logout` (`bwat_logout`)
+forgets it with the sign-in, and the next `bwat_login` can then set another.
+
+Check the address when your client asks to approve `bwat_login`. The model passes it, and the
+bwat at that address chooses the sign-in. Approving it is what makes the address trusted: an
+address planted in a meeting or a card, and approved by mistake, would get your sign-in, and it can
+name your real bwat's Google client, so that sign-in would work against your real bwat until it
+expires. No host list is enforced, because each company runs its own bwat. `bwat_login` is marked
+destructive, so clients should ask before running it (not every client does), and a kept address never signs in with the Google
+client set in your environment.
 
 Sign-in is kept under `BWAT_HOME` (default `~/.bwat`), one credential per bwat address, shared by
 every client on the machine. Point `BWAT_HOME` only at a directory other users cannot modify:
@@ -36,7 +50,7 @@ Each command runs one or more of the MCP tools below, so every MCP client gets t
 
 | Command | Tool | What it does |
 |---|---|---|
-| `/bwat:login`, `/bwat:logout` | `bwat_login`, `bwat_logout` | Sign in the way your bwat is set up (Google, or the install code of a bwat with no Google), or forget the sign-in |
+| `/bwat:login`, `/bwat:logout` | `bwat_login`, `bwat_logout` | Sign in the way your bwat is set up (Google, or the install code of a bwat with no Google), or forget the sign-in. `bwat_login` also takes the bwat address where the client cannot set it |
 | `/bwat:status` | `bwat_status` | Which bwat, and who is signed in |
 | `/bwat:inbox-off`, `/bwat:inbox-on` | `bwat_inbox_off`, `bwat_inbox_on` | Take this session out of (or back into) the board's Send to Claude list; off survives a restart |
 | `/bwat:join <Zoom link>`, `/bwat:recall` | `bwat_bot_join`, `bwat_bot_recall`, `bwat_bot_meetings` | Send bwat to a meeting, see where it is, recall it |
@@ -77,7 +91,8 @@ BWAT_BASE_URL=<your bwat> node dist/bwat-plugin.js whoami   # who you are signed
 
 `login` signs in the way your bwat is set up. With Google, it opens Google in your browser using the
 Desktop client your bwat names at `GET /auth/desktop-client`; `BWAT_GOOGLE_CLIENT_ID` (and
-`BWAT_GOOGLE_CLIENT_SECRET`, when Google issued one) override it, and your bwat backend's
+`BWAT_GOOGLE_CLIENT_SECRET`, when Google issued one) override it, except for an address kept by
+`bwat_login`, which signs in only with the client it names itself. Your bwat backend's
 `BWAT_GOOGLE_CLIENT_IDS` must include the id or every sign-in gets `401`. A bwat with no Google
 signs in with its install code instead: a page opens on this computer where you type the code your
 bwat's setup showed and your email.
@@ -119,9 +134,6 @@ found the last list is sent again.
 These local metadata formats can change between agent versions. Reads are bounded to
 16 KiB per Claude record and 2,048 directory entries; a name outside those bounds falls back too. After updating the plugin, restart its
 MCP server in existing sessions to load the new code. No bwat backend upgrade is required.
-
-Codex support (`.codex-plugin/`, `codex/`) is in the code but not publicly available yet: there is
-no public Codex marketplace entry for it.
 
 ```bash
 npm ci

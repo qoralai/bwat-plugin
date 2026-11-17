@@ -32,10 +32,11 @@ describe('the bwat backend base URL', () => {
   });
 
   it.each([
-    ['/v1/', 'https://bwat.example/v1/'],
-    ['another path', 'https://bwat.example/api'],
-  ])('leaves %s as given', (_label, value) => {
-    expect(backendBaseUrl({ BWAT_BASE_URL: value })?.href).toBe(value);
+    ['/v1', 'https://bwat.example/v1', 'https://bwat.example/v1'],
+    ['/v1/, without its trailing slash', 'https://bwat.example/v1/', 'https://bwat.example/v1'],
+    ['another path', 'https://bwat.example/api', 'https://bwat.example/api'],
+  ])('leaves %s as given', (_label, value, expected) => {
+    expect(backendBaseUrl({ BWAT_BASE_URL: value })?.href).toBe(expected);
   });
 
   it('still refuses a plain address it would otherwise complete', () => {

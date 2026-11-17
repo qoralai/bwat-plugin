@@ -9,8 +9,8 @@ import { createApiClient } from './api/client.js';
 import { codeLogin } from './auth/code.js';
 import { freshIdToken, login } from './auth/google.js';
 import { credentialStore } from './auth/store.js';
-import { backendBaseUrl, googleClient } from './config.js';
-import { openBrowser, signInMethod } from './mcp/login.js';
+import { backendBaseUrl, googleClient, savedBaseUrl } from './config.js';
+import { installSignIn, openBrowser } from './mcp/login.js';
 import { serve } from './mcp/server.js';
 import { HINTS } from './mcp/tools.js';
 import { follow, type Key } from './follow.js';
@@ -42,7 +42,7 @@ function parse() {
 const parsed = parse();
 const [command, occurrence] = parsed.positionals;
 
-/** The configured backend (--base-url, else BWAT_BASE_URL), or undefined when none is set; exits on an unusable value. */
+/** The backend set here (--base-url, else BWAT_BASE_URL), or undefined when none is; exits on an unusable value. */
 function baseUrlOrFail(): URL | undefined {
   try {
     const flag = parsed.values['base-url'];
@@ -51,6 +51,10 @@ function baseUrlOrFail(): URL | undefined {
     fail((err as Error).message);
   }
 }
+
+/** The backend to use: the one set here, else the address bwat_login saved. */
+const anyBaseUrl = (need: string) =>
+  baseUrlOrFail() ?? savedBaseUrl() ?? fail(`BWAT_BASE_URL is not set and no address was saved: ${need}`);
 
 async function main(): Promise<void> {
   if (parsed.values.version) {
@@ -66,17 +70,21 @@ async function main(): Promise<void> {
       break;
     }
     case 'login': {
-      const baseUrl = baseUrlOrFail() ?? fail('BWAT_BASE_URL is not set: login needs to know which bwat to sign in to');
+      const configured = baseUrlOrFail();
+      const baseUrl = configured ?? anyBaseUrl('login needs to know which bwat to sign in to');
       const say = (line: string) => process.stderr.write(`${line}\n`);
+      // The environment's Google client only for an address set here: one bwat_login kept signs in
+      // the way it offers itself, so a token for the real bwat never goes to it.
+      const env = configured && googleClient();
       // A bwat with no Google signs in with its code, typed on a page on this computer.
-      const method = googleClient() ? undefined : await signInMethod(baseUrl).catch(() => undefined);
+      const method = env ? undefined : await installSignIn(baseUrl).catch(() => undefined);
       try {
         const credential =
           method?.kind === 'code'
             ? await codeLogin(credentialStore(baseUrl), { baseUrl, openBrowser, say })
             : await login(credentialStore(baseUrl), {
                 client:
-                  googleClient() ??
+                  env ||
                   (method?.kind === 'google' ? method.client : fail('BWAT_GOOGLE_CLIENT_ID is not set: login needs the Google client to sign in with')),
                 openBrowser,
                 say,
@@ -89,7 +97,7 @@ async function main(): Promise<void> {
       break;
     }
     case 'whoami': {
-      const baseUrl = baseUrlOrFail() ?? fail('BWAT_BASE_URL is not set: whoami needs to know which bwat to ask about');
+      const baseUrl = anyBaseUrl('whoami needs to know which bwat to ask about');
       const store = credentialStore(baseUrl);
       if (!store.load()) {
         process.stdout.write(`not signed in to ${baseUrl.href}; run ${PLUGIN} login\n`);
@@ -108,7 +116,7 @@ async function main(): Promise<void> {
       break;
     }
     case 'follow': {
-      const baseUrl = baseUrlOrFail() ?? fail('BWAT_BASE_URL is not set: follow needs to know which bwat to read');
+      const baseUrl = anyBaseUrl('follow needs to know which bwat to read');
       if (!occurrence) fail('follow needs a meeting: follow <occurrence_id> [--every <seconds>] [--after <epoch>:<seq>]');
       const store = credentialStore(baseUrl);
       if (!store.load()) {

@@ -1,3 +1,7 @@
+import { randomBytes } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { bwatHome, holdLock } from './auth/store.js';
 import { baseUrlProblem } from './guard/hosts.js';
 
 /**
@@ -8,12 +12,84 @@ import { baseUrlProblem } from './guard/hosts.js';
  */
 export function backendBaseUrl(env: NodeJS.ProcessEnv = process.env): URL | undefined {
   const value = env.BWAT_BASE_URL;
-  if (!value) return undefined; // unset or empty: no backend configured
+  return value ? parseBaseUrl(value) : undefined; // unset or empty: no backend configured
+}
+
+/** One bwat address, from wherever it was given; throws naming `label` when it is unusable. */
+export function parseBaseUrl(value: string, label = 'BWAT_BASE_URL'): URL {
   const problem = baseUrlProblem(value);
-  if (problem) throw new Error(`BWAT_BASE_URL ${problem}`);
+  if (problem) throw new Error(`${label} ${problem}`);
   const url = new URL(value);
-  if (url.pathname === '/') url.pathname = '/v1';
+  // One spelling per backend: no trailing slash, so https://x/v1/ and https://x/v1 are the same one.
+  url.pathname = url.pathname.replace(/\/+$/, '') || '/v1';
   return url;
+}
+
+/** Where bwat_login keeps the address it was given, for a client that cannot set BWAT_BASE_URL (Codex). */
+const SAVED = 'base_url';
+
+/**
+ * The kept file, read once: its record as written (the address, then a random tag new with every
+ * save, so two saves of one address differ) and the address in it. A record whose address is no
+ * longer usable has no url, so the server still starts; bwat_logout clears it. Empty when none.
+ */
+export function keptBaseUrl(home: string = bwatHome()): { url?: URL; record?: string } {
+  let record: string;
+  try {
+    record = readFileSync(join(home, SAVED), 'utf8');
+  } catch {
+    return {};
+  }
+  try {
+    return { url: parseBaseUrl(record.split('\n')[0]!.trim()), record };
+  } catch {
+    return { record };
+  }
+}
+
+/** The address bwat_login kept under BWAT_HOME, or undefined when there is none usable. */
+export function savedBaseUrl(home: string = bwatHome()): URL | undefined {
+  return keptBaseUrl(home).url;
+}
+
+/**
+ * Keeping and forgetting run under one lock shared by every bwat-plugin process, so a forget's
+ * compare and delete never straddle another process's forget and save.
+ */
+function changingKept<T>(home: string, fn: () => T): Promise<T> {
+  mkdirSync(home, { recursive: true, mode: 0o700 });
+  return holdLock(join(home, `${SAVED}.lock`), 'another bwat-plugin is changing the bwat address', async () => fn());
+}
+
+/**
+ * Keeps the address, unless one is kept already: undefined then, and the kept one stays. Under the
+ * lock, so the check and the write are one step; written to a temp file and renamed into place, so
+ * a reader (which takes no lock) sees the whole record or none. Answers the record written, for
+ * forgetBaseUrl.
+ */
+export function saveBaseUrl(url: URL, home: string = bwatHome()): Promise<string | undefined> {
+  const record = `${url.href}\n${randomBytes(8).toString('hex')}\n`;
+  return changingKept(home, () => {
+    const file = join(home, SAVED);
+    if (existsSync(file)) return undefined;
+    const temp = `${file}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`;
+    try {
+      writeFileSync(temp, record, { mode: 0o600, flag: 'wx' });
+      renameSync(temp, file);
+    } catch (err) {
+      rmSync(temp, { force: true });
+      throw err;
+    }
+    return record;
+  });
+}
+
+/** Forgets the kept address, but only while it is still the record read or written earlier. */
+export async function forgetBaseUrl(home: string, record: string | undefined): Promise<void> {
+  if (record === undefined) return;
+  await changingKept(home, () => {
+    if (keptBaseUrl(home).record === record) rmSync(join(home, SAVED), { force: true });
+  });
 }
 
 /**

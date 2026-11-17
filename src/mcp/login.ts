@@ -19,7 +19,11 @@ export type SignInMethod = { kind: 'google'; client: DesktopClient } | { kind: '
 
 export async function signInMethod(baseUrl: URL): Promise<SignInMethod> {
   const fromEnv = googleClient();
-  if (fromEnv) return { kind: 'google', client: fromEnv };
+  return fromEnv ? { kind: 'google', client: fromEnv } : installSignIn(baseUrl);
+}
+
+/** How the bwat at this address says to sign in; throws when it does not answer as a bwat. */
+export async function installSignIn(baseUrl: URL): Promise<SignInMethod> {
   // The guarded client: the host guard, no redirects, a bounded answer, and the person's proxy.
   const api = createApiClient({ baseUrl, token: async () => undefined });
   let body: { client_id?: unknown; client_secret?: unknown; code_signin?: unknown };
@@ -53,8 +57,8 @@ export function openBrowser(url: string): boolean {
 /** An abandoned sign-in closes its loopback server after this long. */
 const SIGN_IN_MS = 10 * 60_000;
 
-/** The sign-in this server is waiting on, if any: asking again answers it rather than starting another. */
-let pending: Promise<string> | undefined;
+/** The sign-in this server is waiting on, if any, and its store: asking again answers it rather than starting another. */
+let pending: { dir: string; url: Promise<string> } | undefined;
 
 /**
  * Starts the sign-in; resolves with its link once the browser has been sent to it: Google's, or
@@ -66,7 +70,8 @@ export async function startSignIn(
   client: DesktopClient | { code: URL },
 ): Promise<{ sign_in_url: string; browser_opened: boolean }> {
   if (pending) {
-    const url = await pending;
+    if (pending.dir !== store.dir) throw new Error('a sign-in to another bwat is still open: finish it in the browser, or wait 10 minutes');
+    const url = await pending.url;
     return { sign_in_url: url, browser_opened: openBrowser(url) };
   }
   let opened = false;
@@ -87,6 +92,6 @@ export async function startSignIn(
       })
       .finally(() => (pending = undefined));
   });
-  pending = started;
+  pending = { dir: store.dir, url: started };
   return { sign_in_url: await started, browser_opened: opened };
 }

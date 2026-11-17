@@ -94,7 +94,7 @@ describe('the two plugin manifests', () => {
 });
 
 describe('Claude Code install settings', () => {
-  // Revisit in the login chunk: once `bwat-plugin login` can store a base URL, decide which source wins.
+  // This setting wins over an address bwat_login saved (test/tools.acceptance.test.ts).
   it('asks for the bwat base URL when the plugin is enabled, required and with no default', () => {
     const { userConfig } = json('.claude-plugin/plugin.json') as { userConfig: Record<string, Record<string, unknown>> };
     expect(Object.keys(userConfig)).toEqual(['base_url']);

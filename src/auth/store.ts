@@ -89,34 +89,39 @@ export function credentialStore(baseUrl: URL, home = bwatHome()): CredentialStor
     },
     async withLock(fn) {
       ensureDir();
-      const lock = join(dir, LOCK);
-      const token = `${process.pid}.${randomBytes(4).toString('hex')}`;
-      const deadline = Date.now() + LOCK_WAIT_MS;
-      for (;;) {
-        try {
-          writeFileSync(lock, token, { mode: 0o600, flag: 'wx' });
-          break;
-        } catch (err) {
-          if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
-        }
-        // A lock left by a killed process is never taken over: the member removes it.
-        if (Date.now() >= deadline) {
-          throw new Error(`another bwat-plugin is signing in or refreshing; if none is running, delete ${lock}`);
-        }
-        await new Promise((resolve) => setTimeout(resolve, 25));
-      }
-      try {
-        return await fn();
-      } finally {
-        // Only our own: had it been deleted by hand, another process may hold it now.
-        try {
-          if (readFileSync(lock, 'utf8') === token) rmSync(lock, { force: true });
-        } catch {
-          // Already gone.
-        }
-      }
+      return holdLock(join(dir, LOCK), 'another bwat-plugin is signing in or refreshing', fn);
     },
   };
+}
+
+/**
+ * Runs fn holding the lock file at `lock`, shared by every bwat-plugin process on the machine,
+ * waiting for any other holder first. A lock left by a killed process is never taken over (two
+ * takers could both win): after the wait, the error names the file for the member to delete.
+ */
+export async function holdLock<T>(lock: string, busy: string, fn: () => Promise<T>): Promise<T> {
+  const token = `${process.pid}.${randomBytes(4).toString('hex')}`;
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  for (;;) {
+    try {
+      writeFileSync(lock, token, { mode: 0o600, flag: 'wx' });
+      break;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+    }
+    if (Date.now() >= deadline) throw new Error(`${busy}; if none is running, delete ${lock}`);
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  try {
+    return await fn();
+  } finally {
+    // Only our own: had it been deleted by hand, another process may hold it now.
+    try {
+      if (readFileSync(lock, 'utf8') === token) rmSync(lock, { force: true });
+    } catch {
+      // Already gone.
+    }
+  }
 }
 
 const nonEmpty = (v: unknown): v is string => typeof v === 'string' && v.length > 0;

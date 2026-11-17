@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { createServer as createSocketServer, type AddressInfo } from 'node:net';
 import { hostname, tmpdir } from 'node:os';
@@ -54,6 +54,8 @@ const TRANSCRIPT = {
 
 type Reply = [number, unknown?];
 let routes: Record<string, Reply>;
+/** A route's answer waits for its promise: to hold one request open while a test acts. */
+let held: Record<string, Promise<void>>;
 let seen: { method?: string; url?: string; authorization?: string; body?: unknown }[];
 let server: Server;
 let baseUrl: string;
@@ -63,14 +65,18 @@ let mcp: Client | undefined;
 beforeEach(async () => {
   seen = [];
   routes = {};
+  held = {};
   server = createServer((req, res) => {
     let text = '';
     req.on('data', (c) => (text += c));
     req.on('end', () => {
       seen.push({ method: req.method, url: req.url, authorization: req.headers.authorization, body: text ? JSON.parse(text) : undefined });
-      const [status, body] = routes[`${req.method} ${req.url}`] ?? [404, { error: 'not_found' }];
-      if (body === undefined) res.writeHead(status).end();
-      else res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(body));
+      const key = `${req.method} ${req.url}`;
+      const [status, body] = routes[key] ?? [404, { error: 'not_found' }];
+      void (held[key] ?? Promise.resolve()).then(() => {
+        if (body === undefined) res.writeHead(status).end();
+        else res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(body));
+      });
     });
   });
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
@@ -257,6 +263,256 @@ describe('without a usable sign-in or backend', () => {
     await connect({ BWAT_BASE_URL: '' });
     const result = await call('bwat_meetings_list');
     expect(result.structuredContent).toEqual({ code: 'backend_not_configured', hint: expect.stringMatching(/BWAT_BASE_URL/) });
+  });
+});
+
+describe('an address saved by bwat_login, for a client that cannot set BWAT_BASE_URL (Codex)', () => {
+  const DESKTOP = [200, { client_id: 'desktop.apps.googleusercontent.com', client_secret: 'desktop-secret' }] as Reply;
+  // The kept file is the address, then a tag new with every save.
+  const saved = () => (existsSync(join(home, 'base_url')) ? readFileSync(join(home, 'base_url'), 'utf8').split('\n')[0] : undefined);
+  const unset = { BWAT_BASE_URL: '', BWAT_NO_BROWSER: '1' };
+
+  it('with no address, the hint tells the model to ask the user and pass it to bwat_login', async () => {
+    await connect(unset, 'codex');
+    const result = await call('bwat_meetings_list');
+    expect(result.structuredContent).toEqual({ code: 'backend_not_configured', hint: expect.stringMatching(/ask the user.*bwat_login.*base_url/i) });
+  });
+
+  it('bwat_login with base_url keeps the address, the tools use it at once, and the next server too', async () => {
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    await connect(unset, 'codex');
+    const started = await call('bwat_login', { base_url: baseUrl });
+    expect(started.isError).toBeFalsy();
+    expect(saved()).toBe(baseUrl);
+
+    signIn();
+    routes['GET /v1/meetings'] = [200, MEETINGS];
+    expect((await call('bwat_meetings_list')).structuredContent).toEqual(MEETINGS);
+    expect(seen.at(-1)).toEqual({ method: 'GET', url: '/v1/meetings', authorization: `Bearer ${TOKEN}` });
+
+    await mcp!.close();
+    await connect(unset, 'codex');
+    expect((await call('bwat_status')).structuredContent).toMatchObject({ base_url: baseUrl });
+  });
+
+  it('the board address alone means its API, under /v1', async () => {
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    await connect(unset, 'codex');
+    expect((await call('bwat_login', { base_url: baseUrl.replace(/\/v1$/, '') })).isError).toBeFalsy();
+    expect(saved()).toBe(baseUrl);
+  });
+
+  it('the kept address spelled with a trailing slash is the same address, not another', async () => {
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    writeFileSync(join(home, 'base_url'), `${baseUrl}\n`);
+    await connect(unset, 'codex');
+    expect((await call('bwat_login', { base_url: `${baseUrl}/` })).isError).toBeFalsy();
+    expect(saved()).toBe(baseUrl);
+  });
+
+  it('a kept address is not replaced by another bwat_login', async () => {
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    await connect(unset, 'codex');
+    await call('bwat_login', { base_url: baseUrl });
+    const refused = await call('bwat_login', { base_url: 'https://bwat.example' });
+    expect(refused.structuredContent).toEqual({ code: 'base_url_already_set', hint: expect.stringMatching(/\/bwat:logout/) });
+    expect(saved()).toBe(baseUrl);
+  });
+
+  it('after bwat_logout another address can be set, and the old sign-in is never sent to it', async () => {
+    const other = baseUrl.replace(/\/v1$/, '/other/v1');
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    routes['GET /other/v1/auth/desktop-client'] = DESKTOP;
+    // Kept and signed in earlier: no sign-in is still open.
+    writeFileSync(join(home, 'base_url'), `${baseUrl}\n`);
+    await connect(unset, 'codex');
+    expect((await call('bwat_logout')).structuredContent).toEqual({ signed_out: true, base_url: baseUrl, address_forgotten: true });
+    expect(saved()).toBeUndefined();
+    signIn();
+    expect((await call('bwat_login', { base_url: other })).isError).toBeFalsy();
+    expect(saved()).toBe(other);
+    seen = [];
+    expect((await call('bwat_meetings_list')).structuredContent).toMatchObject({ code: 'not_signed_in' });
+    expect(seen.filter((r) => r.url?.startsWith('/other/'))).toEqual([]);
+    expect(seen.some((r) => r.authorization)).toBe(false);
+  });
+
+  it.each([
+    ['not https', 'http://bwat.example', /must use https/],
+    ['not a URL', 'bwat.example', /not a URL/],
+    ['credentials in it', 'https://user:pw@bwat.example', /credentials/],
+  ])('an address that is %s is refused and not kept', async (_label, value, reason) => {
+    await connect(unset, 'codex');
+    const result = await call('bwat_login', { base_url: value });
+    expect(result.structuredContent).toEqual({ code: 'invalid_base_url', hint: expect.stringMatching(reason) });
+    expect(saved()).toBeUndefined();
+  });
+
+  it('while a sign-in to one bwat is open, one to another is refused, not answered with the first link', async () => {
+    const other = baseUrl.replace(/\/v1$/, '/other/v1');
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    routes['GET /other/v1/auth/desktop-client'] = DESKTOP;
+    await connect(unset, 'codex');
+    await call('bwat_login', { base_url: baseUrl });
+    await call('bwat_logout');
+    const result = await call('bwat_login', { base_url: other });
+    expect(result.structuredContent).toEqual({ code: 'sign_in_failed', hint: expect.stringMatching(/another bwat is still open/) });
+    expect(saved()).toBeUndefined();
+  });
+
+  it('two bwat_login calls at once with different addresses: one is kept, the other refused', async () => {
+    const other = baseUrl.replace(/\/v1$/, '/other/v1');
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    routes['GET /other/v1/auth/desktop-client'] = DESKTOP;
+    await connect(unset, 'codex');
+    const results = await Promise.all([call('bwat_login', { base_url: baseUrl }), call('bwat_login', { base_url: other })]);
+    const codes = results.map((r) => (r.structuredContent as { code?: string }).code);
+    expect(codes.sort()).toEqual(['base_url_already_set', undefined].sort());
+    const winner = results.findIndex((r) => !r.isError);
+    expect(saved()).toBe([baseUrl, other][winner]);
+  });
+
+  it('an address that cannot be kept starts no sign-in', async () => {
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    // BWAT_HOME is a file, not a directory: the save fails.
+    writeFileSync(join(home, 'not-a-dir'), '');
+    await connect({ ...unset, BWAT_HOME: join(home, 'not-a-dir') }, 'codex');
+    const result = await call('bwat_login', { base_url: baseUrl });
+    expect(result.structuredContent).toEqual({ code: 'sign_in_failed', hint: expect.stringMatching(/could not start/) });
+    expect((await call('bwat_status')).structuredContent).toMatchObject({ base_url: null });
+  });
+
+  it('an address that answers without a way to sign in is not kept', async () => {
+    routes['GET /v1/auth/desktop-client'] = [200, { client_id: null }];
+    await connect(unset, 'codex');
+    expect((await call('bwat_login', { base_url: baseUrl })).structuredContent).toMatchObject({ code: 'desktop_client_not_configured' });
+    expect(saved()).toBeUndefined();
+  });
+
+  it('with the Google client set in the environment, a new address is still asked before it is kept', async () => {
+    await connect({ ...unset, BWAT_GOOGLE_CLIENT_ID: 'env.apps.googleusercontent.com' }, 'codex');
+    const result = await call('bwat_login', { base_url: baseUrl.replace(/\/v1$/, '/nothing/v1') });
+    expect(result.structuredContent).toMatchObject({ code: 'backend_unavailable' });
+    expect(saved()).toBeUndefined();
+  });
+
+  it('with the Google client set in the environment, a new address signs in with its own client, not that one', async () => {
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    await connect({ ...unset, BWAT_GOOGLE_CLIENT_ID: 'env.apps.googleusercontent.com' }, 'codex');
+    const result = await call('bwat_login', { base_url: baseUrl });
+    const url = new URL((result.structuredContent as { sign_in_url: string }).sign_in_url);
+    expect(url.searchParams.get('client_id')).toBe('desktop.apps.googleusercontent.com');
+  });
+
+  it.each([
+    ['without base_url', {}],
+    ['with the same base_url', 'same'],
+  ])('with the Google client set in the environment, a kept address signing in again, %s, still uses its own client', async (_name, args) => {
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    writeFileSync(join(home, 'base_url'), `${baseUrl}\ntag\n`);
+    await connect({ ...unset, BWAT_GOOGLE_CLIENT_ID: 'env.apps.googleusercontent.com' }, 'codex');
+    const result = await call('bwat_login', args === 'same' ? { base_url: baseUrl } : args);
+    const url = new URL((result.structuredContent as { sign_in_url: string }).sign_in_url);
+    expect(url.searchParams.get('client_id')).toBe('desktop.apps.googleusercontent.com');
+  });
+
+  it.each([
+    ['a kept address signs in with its own client', false, 'desktop.apps.googleusercontent.com'],
+    ['BWAT_BASE_URL signs in with the environment one', true, 'env.apps.googleusercontent.com'],
+  ])('the login command, with the Google client set in the environment: %s', async (_name, fromEnv, clientId) => {
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    writeFileSync(join(home, 'base_url'), `${baseUrl}\ntag\n`);
+    const child = spawn(process.execPath, [BUNDLE, 'login'], {
+      env: { ...(process.env as Record<string, string>), BWAT_HOME: home, ...unset, BWAT_BASE_URL: fromEnv ? baseUrl : '', BWAT_GOOGLE_CLIENT_ID: 'env.apps.googleusercontent.com' },
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    // The login waits for the browser; the address it prints is all this needs.
+    const printed = await new Promise<string>((resolve) => {
+      let stderr = '';
+      child.stderr.on('data', (chunk) => {
+        stderr += chunk;
+        const found = /https:\/\/accounts\.google\.com\S+/.exec(stderr);
+        if (found) resolve(found[0]);
+      });
+    });
+    child.kill();
+    expect(new URL(printed).searchParams.get('client_id')).toBe(clientId);
+  });
+
+  it('with the Google client set in the environment, an address that offers no way to sign in is not kept', async () => {
+    routes['GET /v1/auth/desktop-client'] = [200, { client_id: null }];
+    await connect({ ...unset, BWAT_GOOGLE_CLIENT_ID: 'env.apps.googleusercontent.com' }, 'codex');
+    expect((await call('bwat_login', { base_url: baseUrl })).structuredContent).toMatchObject({ code: 'desktop_client_not_configured' });
+    expect(saved()).toBeUndefined();
+  });
+
+  it('an address that does not answer as bwat is not kept', async () => {
+    await connect(unset, 'codex');
+    const result = await call('bwat_login', { base_url: baseUrl.replace(/\/v1$/, '/nothing/v1') });
+    expect(result.structuredContent).toMatchObject({ code: 'backend_unavailable' });
+    expect(saved()).toBeUndefined();
+  });
+
+  it('where the client sets BWAT_BASE_URL, another address is refused; the same one signs in', async () => {
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    await connect({ BWAT_BASE_URL: baseUrl, BWAT_NO_BROWSER: '1' });
+    const refused = await call('bwat_login', { base_url: 'https://bwat.example' });
+    expect(refused.structuredContent).toEqual({ code: 'base_url_set_by_client', hint: expect.stringContaining(baseUrl) });
+    expect((await call('bwat_login', { base_url: baseUrl })).isError).toBeFalsy();
+    expect(saved()).toBeUndefined();
+  });
+
+  it('BWAT_BASE_URL wins over a saved address', async () => {
+    const other = baseUrl.replace(/\/v1$/, '/other/v1');
+    writeFileSync(join(home, 'base_url'), `${other}\n`);
+    await connect();
+    expect((await call('bwat_status')).structuredContent).toMatchObject({ base_url: baseUrl });
+  });
+
+  it('a saved address that is no longer usable counts as none', async () => {
+    writeFileSync(join(home, 'base_url'), 'http://bwat.example/v1\n');
+    await connect(unset, 'codex');
+    expect((await call('bwat_status')).structuredContent).toMatchObject({ base_url: null, member_error: 'backend_not_configured' });
+  });
+
+  it.each([
+    ['another address', '/other/v1'],
+    ['the same address again', '/v1'],
+  ])('a slow bwat_logout never undoes a sign-in kept while it waited: %s', async (_label, path) => {
+    const next = baseUrl.replace(/\/v1$/, path);
+    const until = async (done: () => boolean) => {
+      for (let i = 0; i < 200 && !done(); i++) await new Promise((r) => setTimeout(r, 25));
+    };
+    writeFileSync(join(home, 'base_url'), `${baseUrl}\nfirst-tag\n`);
+    credentialStore(new URL(baseUrl), home).save({
+      email: ME.email, sub: 'sub-1', id_token: TOKEN, refresh_token: 'code-refresh', client_id: 'bwat-code', expires_at: '2099-01-01T00:00:00.000Z',
+    });
+    let release!: () => void;
+    held['POST /v1/code-signin/sign-out'] = new Promise((r) => (release = r));
+    routes['POST /v1/code-signin/sign-out'] = [204];
+    await connect(unset, 'codex');
+    const loggingOut = call('bwat_logout');
+    await until(() => seen.some((r) => r.url === '/v1/code-signin/sign-out'));
+    // Meanwhile another thread logs out too and signs in again: a new record and a new credential.
+    const record = `${next}\nsecond-tag\n`;
+    writeFileSync(join(home, 'base_url'), record);
+    credentialStore(new URL(next), home).save({
+      email: ME.email, sub: 'sub-1', id_token: 'eyJ.new-token.sig', client_id: 'unused', expires_at: '2099-01-01T00:00:00.000Z',
+    });
+    release();
+    await loggingOut;
+    expect(readFileSync(join(home, 'base_url'), 'utf8')).toBe(record);
+    expect(credentialStore(new URL(next), home).load()?.id_token).toBe('eyJ.new-token.sig');
+  });
+
+  it('a kept address that is no longer usable: bwat_logout clears it, and a new one can be set', async () => {
+    routes['GET /v1/auth/desktop-client'] = DESKTOP;
+    writeFileSync(join(home, 'base_url'), 'not an address\n');
+    await connect(unset, 'codex');
+    expect((await call('bwat_login', { base_url: baseUrl })).structuredContent).toMatchObject({ code: 'base_url_already_set' });
+    expect((await call('bwat_logout')).structuredContent).toEqual({ signed_out: true, base_url: null, address_forgotten: true });
+    expect((await call('bwat_login', { base_url: baseUrl })).isError).toBeFalsy();
+    expect(saved()).toBe(baseUrl);
   });
 });
 

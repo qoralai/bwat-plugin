@@ -6,11 +6,11 @@
  * open until Google sends the person back, and stores the sign-in then.
  */
 import { spawn } from 'node:child_process';
-import { createApiClient } from '../api/client.js';
-import { codeLogin } from '../auth/code.js';
-import { login } from '../auth/google.js';
-import type { CredentialStore } from '../auth/store.js';
-import { googleClient } from '../config.js';
+import { createApiClient } from '../api/client.ts';
+import { codeLogin } from '../auth/code.ts';
+import { login } from '../auth/google.ts';
+import type { CredentialStore } from '../auth/store.ts';
+import { googleClient } from '../config.ts';
 
 export type DesktopClient = { id: string; secret?: string };
 

@@ -2,9 +2,9 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { type Credential, credentialStore, holdLock } from '../src/auth/store.js';
-import { forgetBaseUrl, keptBaseUrl, saveBaseUrl } from '../src/config.js';
-import { toolsFor } from '../src/mcp/tools.js';
+import { type Credential, credentialStore, holdLock } from '../src/auth/store.ts';
+import { forgetBaseUrl, keptBaseUrl, saveBaseUrl } from '../src/config.ts';
+import { toolsFor } from '../src/mcp/tools.ts';
 
 let home: string;
 beforeEach(() => {

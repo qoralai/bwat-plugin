@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { toolsFor } from '../src/mcp/tools.js';
+import { toolsFor } from '../src/mcp/tools.ts';
 
 // The /bwat: slash commands: Claude Code runs each one by calling the tools it allows.
 const DIR = new URL('../commands/', import.meta.url);
@@ -8,7 +8,7 @@ const commands = readdirSync(DIR).filter((f) => f.endsWith('.md'));
 const PREFIX = 'mcp__plugin_bwat_bwat__';
 const offered = new Set(toolsFor('claude-code', true).map((t) => t.name));
 // Monitor runs commands under Bash's rules: /bwat:live pre-approves only its own follow command.
-const FOLLOW_RULE = 'Bash(node "${CLAUDE_PLUGIN_ROOT}/dist/bwat-plugin.js" follow *)';
+const FOLLOW_RULE = 'Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/start.mjs" follow *)';
 const body = (file: string) => readFileSync(new URL(file, DIR), 'utf8');
 
 describe('the /bwat: slash commands', () => {
@@ -55,7 +55,7 @@ describe('the /bwat: slash commands', () => {
     expect(text).toContain("If no meeting is live, say so and show the newest meeting's transcript once, without following it.");
     expect(text).toContain(`  - ${FOLLOW_RULE}\n`);
     expect(text).toMatch(/^ {2}- mcp__plugin_bwat_bwat__bwat_status$/m);
-    expect(text).toContain(`node "\${CLAUDE_PLUGIN_ROOT}/dist/bwat-plugin.js" follow '<occurrence_id>' --base-url '<base_url>' --every 30 --after <epoch>:<seq>`);
+    expect(text).toContain(`node "\${CLAUDE_PLUGIN_ROOT}/scripts/start.mjs" follow '<occurrence_id>' --base-url '<base_url>' --every 30 --after <epoch>:<seq>`);
     expect(text).toContain('timeout_ms: 1800000');
     // Re-arming resumes from the cursor follow printed last, not by matching text.
     expect(text).toContain('If the monitor expires first, start it again with `--after` set to the cursor of the last event.');

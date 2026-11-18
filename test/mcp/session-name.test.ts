@@ -2,7 +2,7 @@ import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, it } from 'vitest';
-import { sessionNameReader } from '../../src/mcp/session-name.js';
+import { sessionNameReader } from '../../src/mcp/session-name.ts';
 
 let home: string;
 let dirs: { claude: string; codex: string };

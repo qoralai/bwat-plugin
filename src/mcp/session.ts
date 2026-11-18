@@ -6,7 +6,7 @@
  * at a time, in order, so a beat still in flight can never land after the end.
  */
 import { randomUUID } from 'node:crypto';
-import type { BwatApi, SessionClient } from '../api/bwat.js';
+import type { BwatApi, SessionClient } from '../api/bwat.ts';
 
 const HEARTBEAT_MS = 60_000;
 

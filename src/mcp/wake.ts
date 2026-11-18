@@ -20,7 +20,7 @@ import { randomUUID } from 'node:crypto';
 import { open, readFile, rename, writeFile } from 'node:fs/promises';
 import { connect } from 'node:net';
 import { join } from 'node:path';
-import type { BwatApi } from '../api/bwat.js';
+import type { BwatApi } from '../api/bwat.ts';
 
 /** BWAT_INBOX_POLL_MS sets it for tests. */
 const POLL_MS = Number(process.env.BWAT_INBOX_POLL_MS) || 20_000;

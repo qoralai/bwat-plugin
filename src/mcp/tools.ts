@@ -2,14 +2,14 @@
  * The MCP tool surface. The order here is the order a client sees.
  */
 import type { CallToolResult, Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { BwatApi, InboxQuery } from '../api/bwat.js';
-import { ApiError } from '../api/client.js';
-import { credentialStore } from '../auth/store.js';
-import type { ClientKind } from '../clients.js';
-import { signOutCode } from '../auth/code.js';
-import { installSignIn, signInMethod, startSignIn } from './login.js';
-import { forgetBaseUrl, parseBaseUrl, saveBaseUrl, savedBaseUrl } from '../config.js';
-import type { SessionRouter } from './session.js';
+import type { BwatApi, InboxQuery } from '../api/bwat.ts';
+import { ApiError } from '../api/client.ts';
+import { credentialStore } from '../auth/store.ts';
+import type { ClientKind } from '../clients.ts';
+import { signOutCode } from '../auth/code.ts';
+import { installSignIn, signInMethod, startSignIn } from './login.ts';
+import { forgetBaseUrl, parseBaseUrl, saveBaseUrl, savedBaseUrl } from '../config.ts';
+import type { SessionRouter } from './session.ts';
 
 export interface ToolContext {
   client: ClientKind;

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { derivedKeywords, normaliseKeywords, sessionKeywordsReader } from '../../src/mcp/keywords.js';
+import { derivedKeywords, normaliseKeywords, sessionKeywordsReader } from '../../src/mcp/keywords.ts';
 
 const checkout = join('/work', 'bwat-plugin');
 

@@ -8,7 +8,7 @@
  * No retries: a caller that wants one decides per endpoint.
  */
 import { Agent, type Dispatcher, EnvHttpProxyAgent, fetch, type Response } from 'undici';
-import { backendRoot, baseUrlProblem, isLoopbackHttp } from '../guard/hosts.js';
+import { backendRoot, baseUrlProblem, isLoopbackHttp } from '../guard/hosts.ts';
 
 /** Codes the bwat backend sends. Anything else it sends becomes backend_error. */
 const KNOWN_CODES = new Set([
@@ -31,11 +31,13 @@ export type ClientErrorCode =
   | 'too_large_response' | 'backend_unavailable' | 'backend_error';
 
 export class ApiError extends Error {
-  constructor(
-    readonly code: string,
-    readonly status?: number,
-  ) {
+  readonly code: string;
+  readonly status?: number;
+
+  constructor(code: string, status?: number) {
     super(status === undefined ? code : `${code} (HTTP ${status})`);
+    this.code = code;
+    this.status = status;
     this.name = 'ApiError';
   }
 }

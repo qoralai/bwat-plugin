@@ -1,22 +1,23 @@
 /**
- * Entry point of dist/bwat-plugin.js: one bundle, one subcommand per job.
+ * What scripts/start.mjs runs: one subcommand per job.
  * stdout belongs to MCP while serving, so everything human-readable goes to stderr.
  */
+import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { CLIENTS, isClientKind } from './clients.js';
-import { bwatApi } from './api/bwat.js';
-import { createApiClient } from './api/client.js';
-import { codeLogin } from './auth/code.js';
-import { freshIdToken, login } from './auth/google.js';
-import { credentialStore } from './auth/store.js';
-import { backendBaseUrl, googleClient, savedBaseUrl } from './config.js';
-import { installSignIn, openBrowser } from './mcp/login.js';
-import { serve } from './mcp/server.js';
-import { HINTS } from './mcp/tools.js';
-import { follow, type Key } from './follow.js';
-import { PLUGIN } from './index.js';
+import { CLIENTS, isClientKind } from './clients.ts';
+import { bwatApi } from './api/bwat.ts';
+import { createApiClient } from './api/client.ts';
+import { codeLogin } from './auth/code.ts';
+import { freshIdToken, login } from './auth/google.ts';
+import { credentialStore } from './auth/store.ts';
+import { backendBaseUrl, googleClient, savedBaseUrl } from './config.ts';
+import { installSignIn, openBrowser } from './mcp/login.ts';
+import { serve } from './mcp/server.ts';
+import { HINTS } from './mcp/tools.ts';
+import { follow, type Key } from './follow.ts';
+import { PLUGIN } from './index.ts';
 
-declare const __BWAT_VERSION__: string;
+const VERSION: string = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
 function fail(message: string): never {
   process.stderr.write(`${PLUGIN}: ${message}\n`);
@@ -58,7 +59,7 @@ const anyBaseUrl = (need: string) =>
 
 async function main(): Promise<void> {
   if (parsed.values.version) {
-    process.stdout.write(`${__BWAT_VERSION__}\n`);
+    process.stdout.write(`${VERSION}\n`);
     return;
   }
   switch (command) {
@@ -66,7 +67,7 @@ async function main(): Promise<void> {
       const { client } = parsed.values;
       if (!isClientKind(client)) fail(`--client must be one of ${CLIENTS.join(', ')}`);
       // Fail fast on a bad backend. Unset is allowed: the backend tools then say it is not configured.
-      await serve(client, __BWAT_VERSION__, baseUrlOrFail());
+      await serve(client, VERSION, baseUrlOrFail());
       break;
     }
     case 'login': {

@@ -1,8 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { bwatHome, holdLock } from './auth/store.js';
-import { baseUrlProblem } from './guard/hosts.js';
+import { bwatHome, holdLock } from './auth/store.ts';
+import { baseUrlProblem } from './guard/hosts.ts';
 
 /**
  * The bwat backend this install talks to. It is set at install time: nothing is baked in,

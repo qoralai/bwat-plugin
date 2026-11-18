@@ -5,7 +5,7 @@
 import { open, opendir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { SessionClient } from '../api/bwat.js';
+import type { SessionClient } from '../api/bwat.ts';
 
 const RECORD_BYTES = 16 * 1024;
 const INDEX_BYTES = 4 * 1024 * 1024;

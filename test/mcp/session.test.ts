@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { sessionRouter } from '../../src/mcp/session.js';
-import type { SessionClient } from '../../src/api/bwat.js';
+import { sessionRouter } from '../../src/mcp/session.ts';
+import type { SessionClient } from '../../src/api/bwat.ts';
 
 // In-process, on fake time: the heartbeat is a minute apart, too slow for the bundle tests.
 const CLIENT = { kind: 'codex', wake: 'pull', machine: 'm', platform: 'p', plugin_version: '0.1.0', cwd: 'repo' } as const;

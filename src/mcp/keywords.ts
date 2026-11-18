@@ -1,7 +1,7 @@
 /** Session keywords, in the shape the backend keeps. */
 import { readFile, stat } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import type { TranscriptWords } from './transcript.js';
+import type { TranscriptWords } from './transcript.ts';
 
 // A word keeps its hyphens and dots (abc-123, bwat-plugin, session.ts); anything else splits.
 const WORD = /[a-z0-9.-]+/g;

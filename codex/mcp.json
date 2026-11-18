@@ -3,8 +3,9 @@
     "bwat": {
       "type": "stdio",
       "command": "node",
-      "args": ["dist/bwat-plugin.js", "serve", "--client", "codex"],
-      "cwd": "."
+      "args": ["scripts/start.mjs", "serve", "--client", "codex"],
+      "cwd": ".",
+      "startup_timeout_sec": 60
     }
   }
 }

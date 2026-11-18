@@ -7,8 +7,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { credentialStore } from '../src/auth/store.js';
-import { BUNDLE, runBundle } from './bundle.js';
+import { credentialStore } from '../src/auth/store.ts';
+import { BUNDLE, runBundle } from './bundle.ts';
 
 // Outside-in: these tests drive the shipped bundle exactly as an MCP client does.
 

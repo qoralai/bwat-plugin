@@ -3,7 +3,7 @@
  * are the backend README's (Identity; Meetings and transcripts; Client sessions, hand-offs and the
  * inbox). The types describe what the backend sends; nothing here checks them.
  */
-import type { ApiClient } from './client.js';
+import type { ApiClient } from './client.ts';
 
 export interface Member {
   id: string;

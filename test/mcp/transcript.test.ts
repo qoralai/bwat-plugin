@@ -2,7 +2,7 @@ import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, it } from 'vitest';
-import { transcriptReader } from '../../src/mcp/transcript.js';
+import { transcriptReader } from '../../src/mcp/transcript.ts';
 
 let home: string;
 beforeEach(() => { home = mkdtempSync(join(tmpdir(), 'bwat-transcript-')); });

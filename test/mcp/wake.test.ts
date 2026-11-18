@@ -3,7 +3,7 @@ import { createServer, type Server } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { startWaking, wakeLine } from '../../src/mcp/wake.js';
+import { startWaking, wakeLine } from '../../src/mcp/wake.ts';
 
 // In-process, against a local socket standing in for Claude Code's.
 const ID_1 = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';

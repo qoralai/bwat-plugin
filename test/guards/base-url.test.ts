@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { backendBaseUrl } from '../../src/config.js';
-import { baseUrlProblem } from '../../src/guard/hosts.js';
-import { runBundle } from '../bundle.js';
+import { backendBaseUrl } from '../../src/config.ts';
+import { baseUrlProblem } from '../../src/guard/hosts.ts';
+import { runBundle } from '../bundle.ts';
 
 // BWAT_BASE_URL decides where the member's Google ID token is sent and which stored credential
 // is used. Anything that could send it in the clear, or with a secret in

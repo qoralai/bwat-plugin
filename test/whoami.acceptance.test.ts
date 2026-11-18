@@ -4,8 +4,8 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { credentialStore } from '../src/auth/store.js';
-import { runBundleAsync } from './bundle.js';
+import { credentialStore } from '../src/auth/store.ts';
+import { runBundleAsync } from './bundle.ts';
 
 // Outside-in: `whoami` through the shipped bundle, against a throwaway BWAT_HOME and a fake backend.
 const SECRET_ID_TOKEN = 'eyJ.id-token-secret.sig';

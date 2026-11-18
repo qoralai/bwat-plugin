@@ -9,9 +9,9 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { CODE_CLIENT, refreshCode } from './code.js';
-import { signInPage } from './signin-page.js';
-import type { Credential, CredentialStore } from './store.js';
+import { CODE_CLIENT, refreshCode } from './code.ts';
+import { signInPage } from './signin-page.ts';
+import type { Credential, CredentialStore } from './store.ts';
 
 export const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 export const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';

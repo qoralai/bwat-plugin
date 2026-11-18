@@ -3,7 +3,7 @@
  * line-based reader such as Claude Code's Monitor tool. Polls the newest lines; never pages.
  */
 import { setTimeout as sleep } from 'node:timers/promises';
-import type { BwatApi, Transcript } from './api/bwat.js';
+import type { BwatApi, Transcript } from './api/bwat.ts';
 
 const TAIL = 100;
 

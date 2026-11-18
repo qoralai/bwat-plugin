@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, it } from 'vitest';
-import { normaliseKeywords, readCheckout } from '../../src/mcp/keywords.js';
+import { normaliseKeywords, readCheckout } from '../../src/mcp/keywords.ts';
 
 let root: string;
 beforeEach(() => { root = mkdtempSync(join(tmpdir(), 'bwat-checkout-')); });

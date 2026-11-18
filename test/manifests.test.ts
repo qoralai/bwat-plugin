@@ -93,6 +93,26 @@ describe('the two plugin manifests', () => {
   });
 });
 
+describe("Anthropic's directory listing", () => {
+  // The directory reads author and icon from .claude-plugin/plugin.json; the licensor stays in LICENSE and NOTICE.
+  it('names Qoral as the author and points at a square PNG icon inside the plugin', () => {
+    const claude = json('.claude-plugin/plugin.json') as { author: unknown; icon: string };
+    expect(claude.author).toEqual({ name: 'Qoral' });
+    expect(claude.icon).toBe('./icon.png');
+    const png = readFileSync(join(REPO, claude.icon));
+    expect(png.subarray(1, 4).toString('latin1')).toBe('PNG');
+    expect(png.readUInt32BE(16)).toBe(png.readUInt32BE(20));
+    expect((json('.codex-plugin/plugin.json') as { interface: { developerName: string } }).interface.developerName).toBe('Qoral');
+  });
+});
+
+describe('Codex install settings', () => {
+  // Codex gives a server 10 s to start by default; the first start also installs the libraries.
+  it('gives the first start time to install the libraries', () => {
+    expect((bwatEntry('.codex-plugin/plugin.json').entry as { startup_timeout_sec?: number }).startup_timeout_sec).toBeGreaterThanOrEqual(60);
+  });
+});
+
 describe('Claude Code install settings', () => {
   // This setting wins over an address bwat_login saved (test/tools.acceptance.test.ts).
   it('asks for the bwat base URL when the plugin is enabled, required and with no default', () => {

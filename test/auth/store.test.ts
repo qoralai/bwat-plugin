@@ -2,7 +2,7 @@ import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, s
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { type Credential, credentialStore } from '../../src/auth/store.js';
+import { type Credential, credentialStore } from '../../src/auth/store.ts';
 
 let home: string;
 beforeEach(() => {

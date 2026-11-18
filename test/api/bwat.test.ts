@@ -1,8 +1,8 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { bwatApi } from '../../src/api/bwat.js';
-import { type ApiClient, createApiClient } from '../../src/api/client.js';
+import { bwatApi } from '../../src/api/bwat.ts';
+import { type ApiClient, createApiClient } from '../../src/api/client.ts';
 
 /** Each typed route sends the method, path and query the backend README documents. */
 let server: Server;

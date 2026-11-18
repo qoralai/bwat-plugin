@@ -10,9 +10,9 @@
 import { randomBytes } from 'node:crypto';
 import { createServer, type IncomingMessage } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { ApiError, createApiClient } from '../api/client.js';
-import { codePage, signInPage } from './signin-page.js';
-import type { Credential, CredentialStore } from './store.js';
+import { ApiError, createApiClient } from '../api/client.ts';
+import { codePage, signInPage } from './signin-page.ts';
+import type { Credential, CredentialStore } from './store.ts';
 
 /** A code sign-in's credential is told apart from a Google one by this client id. */
 export const CODE_CLIENT = 'bwat-code';

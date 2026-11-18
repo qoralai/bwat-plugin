@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { freshIdToken, login } from '../../src/auth/google.js';
-import { signInPage } from '../../src/auth/signin-page.js';
-import { type Credential, credentialStore } from '../../src/auth/store.js';
+import { freshIdToken, login } from '../../src/auth/google.ts';
+import { signInPage } from '../../src/auth/signin-page.ts';
+import { type Credential, credentialStore } from '../../src/auth/store.ts';
 
 // In-process: a fake Google token endpoint, and the test plays the browser through the loopback redirect.
 const BASE = new URL('https://bwat.example/v1');

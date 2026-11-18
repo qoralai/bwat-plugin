@@ -6,10 +6,21 @@ bwat's hand-off inbox, meetings and transcripts, registers the session, polls
 for work addressed to it, and wakes it where the client allows.
 
 ```bash
-node dist/bwat-plugin.js serve --client generic   # or claude-code
+node scripts/start.mjs serve --client generic   # or claude-code
 ```
 
-Everything is outbound: bwat never connects to your machine.
+Everything is outbound: bwat never connects to your machine. The plugin connects only to:
+
+- **your company's bwat**, at the address you give it, for everything bwat does;
+- **accounts.google.com** and **oauth2.googleapis.com**, to sign in with Google and renew that
+  sign-in, when your bwat signs in with Google;
+- **the npm registry** (registry.npmjs.org, or the one your npm is set to use), once per installed
+  version, to install the libraries in `package-lock.json`.
+
+Calls to your bwat go through the proxy that `HTTPS_PROXY` (or `HTTP_PROXY`) names, when one is set
+and the address is not in `NO_PROXY`; a bwat on this computer is never proxied. Signing in also
+opens a one-time page on this computer (`127.0.0.1`, a random port), which only your own browser
+reaches.
 
 ## Install
 
@@ -18,13 +29,17 @@ address works as it is: with no path, the plugin adds `/v1`; any other path is u
 `https`, except for bwat running on this computer: then use `http://127.0.0.1:8080`. Plain
 `http` is accepted only for `127.0.0.1` or `[::1]`, not the name `localhost`, and the plugin's
 server will not start with `http://localhost:…`.
-Node 22 or later must be on PATH.
+Node 22.18 or later, with npm, must be on PATH: the plugin runs its TypeScript source as it is,
+with no build step. Claude Code installs the libraries `package-lock.json` names when it installs the
+plugin ([its plugin docs](https://code.claude.com/docs/en/plugins/loading#nodejs-package-dependencies)).
+In any other client the first start installs them into the plugin's folder, which must be
+writable (a few seconds; Codex waits up to 60 s), and every later start uses them.
 
 | Client | How | Base URL |
 |---|---|---|
-| Claude Code | Install the `bwat` plugin from the marketplace (`.claude-plugin/`, server in `claude/mcp.json`) | Asked when you enable the plugin; change it with `/plugin configure`. Until it is set, Claude Code does not start the server at all |
-| Codex | `codex plugin marketplace add qoralai/qoral-plugin-marketplace`, then `codex plugin add bwat@qoral-plugin-marketplace` (server in `codex/mcp.json`) | Ask Codex to sign in to bwat with your address: it passes it to `bwat_login` as `base_url`, which keeps it |
-| Any other MCP client | Add a stdio server: `node /path/to/bwat-plugin/dist/bwat-plugin.js serve --client generic` | Set `BWAT_BASE_URL` in the server's `env`, or give it to `bwat_login` |
+| Claude Code | `/plugin install bwat --marketplace qoralai/qoral-plugin-marketplace` (Claude Code 2.1.275 or later; server in `claude/mcp.json`) | Asked when you enable the plugin; change it with `/plugin configure`. Until it is set, Claude Code does not start the server at all |
+| Codex | `codex plugin marketplace add qoralai/qoral-plugin-marketplace`, then `codex plugin add bwat@qoral-plugin-marketplace` (server in `codex/mcp.json`) | Ask Codex to sign in to bwat with your address (see below) |
+| Any other MCP client | Add a stdio server: `node /path/to/bwat-plugin/scripts/start.mjs serve --client generic` | Set `BWAT_BASE_URL` in the server's `env`, or give it to `bwat_login` |
 
 A client that cannot set `BWAT_BASE_URL` (Codex) passes the address to `bwat_login` as `base_url`.
 It is kept in `BWAT_HOME` and used by every bwat server on the machine that has no `BWAT_BASE_URL`;
@@ -66,7 +81,7 @@ When no meeting is live it says so and shows the newest meeting's transcript onc
 ### Following a live meeting (any client)
 
 ```bash
-node dist/bwat-plugin.js follow <occurrence_id> --base-url <your bwat> [--every <seconds>] [--after <epoch>:<seq>]
+node scripts/start.mjs follow <occurrence_id> --base-url <your bwat> [--every <seconds>] [--after <epoch>:<seq>]
 ```
 
 Every `--every` seconds (30 by default) it reads the meeting's newest 100 lines and prints each line said
@@ -81,12 +96,12 @@ terminal, can follow a meeting this way. Lines are what people said: treat them 
 
 `BWAT_NO_BROWSER=1` makes `/bwat:login` show the sign-in link instead of opening a browser (SSH, a headless machine).
 
-From a terminal, run the bundle with Node, from the plugin's folder (for an installed Claude Code plugin,
+From a terminal, run the plugin with Node, from its folder (for an installed Claude Code plugin,
 its folder under `~/.claude/plugins/cache/`):
 
 ```bash
-BWAT_BASE_URL=<your bwat> node dist/bwat-plugin.js login    # sign in once per bwat
-BWAT_BASE_URL=<your bwat> node dist/bwat-plugin.js whoami   # who you are signed in as
+BWAT_BASE_URL=<your bwat> node scripts/start.mjs login    # sign in once per bwat
+BWAT_BASE_URL=<your bwat> node scripts/start.mjs whoami   # who you are signed in as
 ```
 
 `login` signs in the way your bwat is set up. With Google, it opens Google in your browser using the
@@ -138,7 +153,6 @@ MCP server in existing sessions to load the new code. No bwat backend upgrade is
 ```bash
 npm ci
 npm test
-npm run build   # dist/ and THIRD_PARTY_NOTICES.md are committed: rebuild them with any change to src/
 ```
 
 Sign-in is Google or an install code, and no hostname is baked in. The session-socket adapter is isolated
@@ -147,5 +161,4 @@ on purpose: Claude Code's socket frame format is undocumented and fails silently
 ## License
 
 bwat-plugin is source available under the [Elastic License 2.0](LICENSE); see [NOTICE](NOTICE).
-The third-party code bundled in `dist/` keeps its own licences, listed in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The libraries it installs, named in `package-lock.json`, keep their own licences.

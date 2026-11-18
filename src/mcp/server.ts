@@ -9,20 +9,20 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { AjvJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/ajv';
-import { bwatApi } from '../api/bwat.js';
-import { ApiError, createApiClient } from '../api/client.js';
-import { freshIdToken } from '../auth/google.js';
+import { bwatApi } from '../api/bwat.ts';
+import { ApiError, createApiClient } from '../api/client.ts';
+import { freshIdToken } from '../auth/google.ts';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { bwatHome, credentialStore } from '../auth/store.js';
-import { keptBaseUrl } from '../config.js';
-import type { ClientKind } from '../clients.js';
-import { sessionKeywordsReader } from './keywords.js';
-import { sessionRouter } from './session.js';
-import { sessionNameReader } from './session-name.js';
-import { transcriptReader } from './transcript.js';
-import { toolError, toolsFor } from './tools.js';
-import { startWaking } from './wake.js';
+import { bwatHome, credentialStore } from '../auth/store.ts';
+import { keptBaseUrl } from '../config.ts';
+import type { ClientKind } from '../clients.ts';
+import { sessionKeywordsReader } from './keywords.ts';
+import { sessionRouter } from './session.ts';
+import { sessionNameReader } from './session-name.ts';
+import { transcriptReader } from './transcript.ts';
+import { toolError, toolsFor } from './tools.ts';
+import { startWaking } from './wake.ts';
 
 const SESSION_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/;
 

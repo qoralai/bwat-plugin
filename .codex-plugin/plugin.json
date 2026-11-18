@@ -1,9 +1,9 @@
 {
   "name": "bwat",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "bwat in your agent sessions: your hand-off inbox, meetings and transcripts from your company's bwat, over a local MCP server.",
   "author": {
-    "name": "WaveXR"
+    "name": "Qoral"
   },
   "repository": "https://github.com/qoralai/bwat-plugin",
   "keywords": ["bwat", "meetings", "hand-off", "inbox", "transcripts", "mcp"],
@@ -11,7 +11,7 @@
   "interface": {
     "displayName": "bwat",
     "shortDescription": "Your bwat hand-offs, meetings and transcripts",
-    "developerName": "WaveXR",
+    "developerName": "Qoral",
     "category": "Productivity",
     "capabilities": ["Read"]
   }

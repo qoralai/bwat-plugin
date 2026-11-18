@@ -7,8 +7,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { credentialStore } from '../src/auth/store.js';
-import { BUNDLE } from './bundle.js';
+import { credentialStore } from '../src/auth/store.ts';
+import { BUNDLE } from './bundle.ts';
 
 // Outside-in: what /bwat:join, /bwat:recall, /bwat:cards, /bwat:login,
 // /bwat:logout, /bwat:inbox-off and /bwat:inbox-on run, through the shipped

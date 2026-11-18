@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { createServer as createNetServer, type AddressInfo, type Server as NetServer } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ApiError, type ApiClient, createApiClient } from '../../src/api/client.js';
+import { ApiError, type ApiClient, createApiClient } from '../../src/api/client.ts';
 
 /**
  * The API client every backend tool goes through. A local HTTP server stands in for the bwat

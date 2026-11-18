@@ -1,7 +1,7 @@
 /** Best-effort reads of a Claude Code transcript: the files the session edited and the person's typed prompts. */
 import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { claudeConfigDir, claudeLocator, parseSessionRecord, readMetadata } from './session-name.js';
+import { claudeConfigDir, claudeLocator, parseSessionRecord, readMetadata } from './session-name.ts';
 
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 const PROMPTS = 20;

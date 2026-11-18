@@ -7,8 +7,8 @@ import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { credentialStore } from '../src/auth/store.js';
-import { BUNDLE } from './bundle.js';
+import { credentialStore } from '../src/auth/store.ts';
+import { BUNDLE } from './bundle.ts';
 
 // Outside-in: each backend tool through the shipped bundle, against a local HTTP server that
 // answers as the bwat backend README documents. The real backend is exercised in Docker

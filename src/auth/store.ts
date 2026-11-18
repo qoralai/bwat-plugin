@@ -12,7 +12,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { backendRoot } from '../guard/hosts.js';
+import { backendRoot } from '../guard/hosts.ts';
 
 export interface Credential {
   email: string;

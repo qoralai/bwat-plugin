@@ -4,10 +4,10 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { CODE_CLIENT, codeLogin, signOutCode } from '../../src/auth/code.js';
-import { freshIdToken } from '../../src/auth/google.js';
-import { credentialStore } from '../../src/auth/store.js';
-import { signInMethod } from '../../src/mcp/login.js';
+import { CODE_CLIENT, codeLogin, signOutCode } from '../../src/auth/code.ts';
+import { freshIdToken } from '../../src/auth/google.ts';
+import { credentialStore } from '../../src/auth/store.ts';
+import { signInMethod } from '../../src/mcp/login.ts';
 
 // A fake single-computer bwat: POST /v1/code-signin, /refresh and /sign-out. The test
 // plays the browser on the plugin's one-shot sign-in page.
